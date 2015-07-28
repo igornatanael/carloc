@@ -7,13 +7,15 @@ sig Locadora {
 
 sig Cliente {}
 
-sig ClienteVIP extends Cliente {}
+sig ClienteVIP in Cliente {}
 
 abstract sig Carro{}
 
 sig CarroImp extends Carro{}
 sig CarroNac extends Carro{}
 
+
+
 pred show[]{
 }
-run show for 3
+run show for 4
