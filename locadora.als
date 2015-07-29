@@ -1,13 +1,20 @@
 module locadora
+open util/ordering[Time]
+
+sig Time{}
 
 sig Locadora {
-	carros: some Carro,
-	clientes: some Cliente
+	carros: some Carro ->,
+	clientes: some Cliente -> 
 }
 
 
 sig Cliente {
 	alugados: some Carro
+}
+
+fact {
+	all c:Carro | one c.~carros
 }
 
 sig ClienteVIP in Cliente {}
