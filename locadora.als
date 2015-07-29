@@ -2,7 +2,9 @@ module locadora
 open util/ordering[Time] as to
 sig Time{}
 
-abstract sig Carro{}
+sig Locadora {
+	carros: set Carro
+}
 
 sig CarroImp extends Carro{}
 sig CarroNac extends Carro{}
