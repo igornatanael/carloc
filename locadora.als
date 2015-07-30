@@ -2,9 +2,7 @@ module locadora
 open util/ordering[Time] as to
 sig Time{}
 
-sig Locadora {
-	carros: set Carro
-}
+abstract sig Carro{}
 
 sig CarroImp extends Carro{}
 sig CarroNac extends Carro{}
@@ -20,6 +18,14 @@ one sig Locadora {
 	clientes: some Cliente
 }
 
+fact{ //FATOS SOBRE LOCADORA
+	one Locadora
+
+	//Uma locadora possui carros nacionais e importados
+	some c: Locadora | #(c.carros) >= 1
+	
+
+}
 
 fact { //FATOS SOBRE CARROS
 	all c:Carro | one c.~carros
@@ -31,14 +37,13 @@ fact { //FATOS SOBRE CARROS
 
 fact  { //FATOS  SOBRE CLIENTES
 	//Cliente alocações <= 3
-	all c: Cliente | #c.alugados<= 3
+	all c: Cliente | #(c.alugados) <= 3
 	
 	//Cliente é VIP se alocações >= 2
-	all c: ClienteVIP | #c.alugados >= 2
+	all c: ClienteVIP | #(c.alugados) >= 2
 	
 
 }
-
 
 pred show[]{
 }
