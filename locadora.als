@@ -21,7 +21,6 @@ abstract sig Carro{
 sig CarroImp, CarroNac extends Carro{}
 
 sig Cliente {
-	locadora: one Locadora,
 	alugadosNac: set CarroNac -> Time,
 	alugadosImp: set CarroImp -> Time
 }
