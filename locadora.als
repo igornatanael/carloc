@@ -14,7 +14,7 @@ one sig Locadora { //Locadora onde todos os carros estão "guardados"
 }
 
 abstract sig Carro{
-	cliente: set Cliente,
+	cliente: set Cliente -> Time,
 	locadora: one Locadora
 }
 
@@ -22,11 +22,19 @@ sig CarroImp, CarroNac extends Carro{}
 
 sig Cliente {
 	locadora: one Locadora,
-	alugadosNac: set CarroNac,
-	alugadosImp: set CarroImp
+	alugadosNac: set CarroNac -> Time,
+	alugadosImp: set CarroImp -> Time
 }
 
 /*--------------------------------------------Fatos------------------------------------------------------*/
+
+fact traces {
+	init [first]	
+ 	all pre: Time-last | let pos = pre.next |
+		some cli : Cliente, car: Carro, loc: Locadora |
+			(cli.alugadosNac).pos = (cli.alugadosNac).pre + car
+}
+
 fact{ //FATOS SOBRE LOCADORA
 	one Locadora
 }
@@ -34,6 +42,7 @@ fact{ //FATOS SOBRE LOCADORA
 fact { //FATOS SOBRE CARROS
 	all car: Carro | carroTemUmaLocadora[car]
 	all car: Carro | carroTemUmCliente[car]
+ 	all car: Carro | all t: Time, l: Locadora | carroAlugadoOuNao[car,l,t]
 }
 
 fact  { //FATOS  SOBRE CLIENTES
@@ -41,6 +50,8 @@ fact  { //FATOS  SOBRE CLIENTES
 }
 
 /*--------------------------------------------Funções-----------------------------------------------------*/
+
+
 
 /*--------------------------------------------Predicados-----------------------------------------------------*/
 
@@ -60,8 +71,18 @@ pred carroTemUmCliente[car:Carro] {
 	#(car.cliente) = 0 or #(car.cliente) = 1
 }
 
+pred carroAlugadoOuNao[car: Carro, loc:Locadora, t:Time]{
+	car in (loc.carrosAlugados).t or car in (loc.carrosDisponiveis).t
+}
+
 pred clienteTemUmaLocadora[cli:Cliente] {
 	one cli.locadora
+}
+/*
+pred alugaUmCarroNac[cli: Cliente, car: Carro, loc: Locadora, t, t': Time] { 	-- Aluga um carro
+	 cli in (car.clientesComuns).t or cli 	in (car.clientesVip).t
+	 car in (loc.carrosDisponiveis).t
+	 (cli.alugadosNac).t' = (cli.alugadosNac).t + car
 }
 
 /*--------------------------------------------Asserts-----------------------------------------------------*/
