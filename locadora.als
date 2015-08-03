@@ -12,9 +12,7 @@ one sig Locadora { -- Locadora onde todos os carros estão "guardados"
 	clientes: set Cliente -> Time
 }
 
-abstract sig Carro{
-	cliente: set Cliente -> Time,
-}
+abstract sig Carro{}
 
 sig CarroImp, CarroNac extends Carro{}
 
@@ -32,17 +30,17 @@ fact traces {
 			(cli.alugadosNac).pos = (cli.alugadosNac).pre + car and (loc.carrosAlugados).pos = (loc.carrosAlugados).pre + car
 }
 
-fact{ //FATOS SOBRE LOCADORA
+fact{ -- FATOS SOBRE LOCADORA
 	one Locadora
 }
 
-fact { //FATOS SOBRE CARROS
+fact { -- FATOS SOBRE CARROS
 	all car: Carro | carroTemUmaLocadora[car]
 	all car: Carro | carroTemUmCliente[car]
  	all car: Carro | all t: Time, l: Locadora | carroAlugadoOuNao[car,l,t]
 }
 
-fact  { //FATOS  SOBRE CLIENTES
+fact  { -- FATOS  SOBRE CLIENTES
 	all c:Cliente | clienteTemUmaLocadora[c]
 }
 
@@ -53,18 +51,18 @@ fact  { //FATOS  SOBRE CLIENTES
 /*--------------------------------------------Predicados-----------------------------------------------------*/
 
 pred init[t: Time] { --Inicializador
-	no (Carro.cliente).t  -- No tempo inicial carros não podem ter cliente
+	no (Locadora.carrosDesejados).t
 	no (Locadora.carrosAlugados).t 	-- No tempo inicial a locadora não tem nenhum carro alugado
  	no (Cliente.alugadosNac).t 	-- No tempo inicial nenhum cliente tem carro alugado
 	no (Cliente.alugadosImp).t 	-- No tempo inicial nenhum cliente tem carro alugado
 }
 
 pred carroTemUmaLocadora[car:Carro] {
-	one car.locadora
+	
 }
 
 pred carroTemUmCliente[car:Carro] {
-	#(car.cliente) = 0 or #(car.cliente) = 1
+
 }
 
 pred carroAlugadoOuNao[car: Carro, loc:Locadora, t:Time]{
@@ -72,7 +70,7 @@ pred carroAlugadoOuNao[car: Carro, loc:Locadora, t:Time]{
 }
 
 pred clienteTemUmaLocadora[cli:Cliente] {
-	one cli.locadora
+
 }
 
 /*
