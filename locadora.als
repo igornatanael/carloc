@@ -44,13 +44,20 @@ fact  { //FATOS  SOBRE CLIENTES
 
 /*--------------------------------------------Predicados-----------------------------------------------------*/
 
+pred init[t: Time] { --Inicializador
+	no (Carro.cliente).t  -- No tempo inicial carros não podem ter cliente
+	no (Locadora.carrosAlugados).t 	-- No tempo inicial a locadora não tem nenhum carro alugado
+	no (Locadora.clientesVip).t 	--No tempo inicial nenhum cliente é VIP, pois ainda não possui nenhum carro alugado
+ 	no (Cliente.alugadosNac).t 	-- No tempo inicial nenhum cliente tem carro alugado
+	no (Cliente.alugadosImp).t 	-- No tempo inicial nenhum cliente tem carro alugado
+}
+
 pred carroTemUmaLocadora[car:Carro] {
 	one car.locadora
 }
 
 pred carroTemUmCliente[car:Carro] {
 	#(car.cliente) = 0 or #(car.cliente) = 1
-	one car.locadora
 }
 
 pred clienteTemUmaLocadora[cli:Cliente] {
