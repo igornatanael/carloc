@@ -1,5 +1,5 @@
 module locadora
-open util/ordering[Time] as to
+open util/ordering[Time]
 
 /*--------------------------------------------Assinaturas------------------------------------------------------*/
 
@@ -35,16 +35,15 @@ fact{ -- FATOS SOBRE LOCADORA
 }
 
 fact { -- FATOS SOBRE CARROS
-	all car: Carro | carroTemUmaLocadora[car]
-	all car: Carro | carroTemUmCliente[car]
+	all car: Carro | all t: Time | carroTemUmCliente[car, t]
  	all car: Carro | all t: Time, l: Locadora | carroAlugadoOuNao[car,l,t]
 }
 
-fact  { -- FATOS  SOBRE CLIENTES
+fact  { -- FATOS SOBRE CLIENTES
 	all c:Cliente | clienteTemUmaLocadora[c]
 }
 
-/*--------------------------------------------Funções-----------------------------------------------------*/
+/*--------------------------------------------Funções--------------------------------------------------------*/
 
 
 
@@ -57,12 +56,13 @@ pred init[t: Time] { --Inicializador
 	no (Cliente.alugadosImp).t 	-- No tempo inicial nenhum cliente tem carro alugado
 }
 
-pred carroTemUmaLocadora[car:Carro] {
-	
+pred carroTemUmCliente[car:Carro, t: Time] {
+
 }
 
-pred carroTemUmCliente[car:Carro] {
-
+pred alugarCarroImportado[cli: Cliente, car: Carro, loc: Locadora, t,t': Time]{
+	car !in (cli.alugadosImp).t and #(cli.alugadosNac).t + #(cli.alugadosImp).t <= 3 and car != (loc.carrosAlugados).t
+	
 }
 
 pred carroAlugadoOuNao[car: Carro, loc:Locadora, t:Time]{
@@ -79,6 +79,16 @@ pred alugaUmCarroNac[cli: Cliente, car: Carro, loc: Locadora, t, t': Time] { 	--
 	 car in (loc.carrosDisponiveis).t
 	 (cli.alugadosNac).t' = (cli.alugadosNac).t + car
 }
+
+
+/*--------------------------------------------Operações----------------------------------------------------*/
+
+-- OPERAÇÃO CADASTRAR CLIENTE
+pred cadastrarCliente[cli: Cliente, loc: Locadora, t, t': Time] {
+	cli !in (loc.clientes).t
+	(loc.clientes).t' = (loc.clientes).t + cli
+}
+
 
 /*--------------------------------------------Asserts-----------------------------------------------------*/
 
