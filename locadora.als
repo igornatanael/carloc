@@ -6,29 +6,32 @@ open util/ordering[Time]
 sig Time{}
 
 one sig Locadora { -- Locadora onde todos os carros estão "guardados"
-	carrosDisponiveis: Carro -> Time,
+	clientesVip: set ClienteVip -> Time,
+ 	carrosDisponiveis:  Carro -> Time,
 	carrosAlugados:  Carro -> Time,
 	carrosDesejados: Carro -> Time,
 	clientes: Cliente -> Time
 }
 
-abstract sig Carro{}
-
-sig CarroImp, CarroNac extends Carro{}
-
 sig Cliente {
 	alugadosNac: CarroNac -> Time,
 	alugadosImp:  CarroImp -> Time,
-  desejados:  Carro -> Time
+   desejados:  Carro -> Time
 }
+sig ClienteVip in Cliente{}
+
+abstract sig Carro{}
+sig CarroImp extends Carro{}
+sig CarroNac extends Carro{}
+
 
 /*--------------------------------------------Fatos------------------------------------------------------*/
 
 fact traces {
 	init [first]	
  	all pre: Time-last | let pos = pre.next |
-		some cli : Cliente, car: Carro, loc: Locadora |
-			(cli.alugadosNac).pos = (cli.alugadosNac).pre + car and (loc.carrosAlugados).pos = (loc.carrosAlugados).pre + car
+		some cli : Cliente, loc: Locadora |
+			clienteVipNaLista[cli,loc,pre, pos]	
 }
 
 fact{ -- FATOS SOBRE LOCADORA
@@ -42,7 +45,7 @@ fact { -- FATOS SOBRE CARROS
 
 fact  { -- FATOS SOBRE CLIENTES
 	all c:Cliente | clienteTemUmaLocadora[c]
-  
+	all c:Cliente | one l: Locadora | all t: Time | clienteTemUmaLocadora[c,l,t]
 }
 
 /*--------------------------------------------Funções--------------------------------------------------------*/
@@ -52,6 +55,7 @@ fact  { -- FATOS SOBRE CLIENTES
 /*--------------------------------------------Predicados-----------------------------------------------------*/
 
 pred init[t: Time] { --Inicializador
+	no (Locadora.clientesVip).t
 	no (Locadora.carrosDesejados).t
 	no (Locadora.carrosAlugados).t 	-- No tempo inicial a locadora não tem nenhum carro alugado
  	no (Cliente.alugadosNac).t 	-- No tempo inicial nenhum cliente tem carro alugado
@@ -70,9 +74,14 @@ pred carroAlugadoOuNao[car: Carro, loc:Locadora, t:Time]{
 	car in (loc.carrosAlugados).t or car in (loc.carrosDisponiveis).t
 }
 
-pred clienteTemUmaLocadora[cli:Cliente] {
-
+pred clienteTemUmaLocadora[cli:Cliente, loc: Locadora, t: Time] {
+	cli in (loc.clientes).t
 }
+
+pred clienteVipNaLista[cli:ClienteVip, loc: Locadora, t: Time, t': Time]{
+	cli !in (loc.clientesVip).t => (loc.clientesVip).t' = (loc.clientesVip).t' + cli
+ }
+
 
 /*
 pred alugaUmCarroNac[cli: Cliente, car: Carro, loc: Locadora, t, t': Time] { 	-- Aluga um carro
@@ -97,4 +106,4 @@ pred cadastrarCliente[cli: Cliente, loc: Locadora, t, t': Time] {
 pred show[]{
 }
 
-run show for 7
+run show for 10
