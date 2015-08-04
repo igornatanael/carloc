@@ -1,17 +1,37 @@
-Tema 9: Locadora de Carros
+Tema 9:
+Locadora de Carros
 
-Uma locadora de carros possui carros nacionais e importados para serem locados. 
 
-Apenas clientes VIPs podem fazer a locação de carros importados. 
+[ DONE ] 1 - Uma locadora de carros possui carros nacionais e importados para serem locados. 
 
+
+[ PENDING ] 2 - Apenas clientes VIPs podem fazer a locação de carros importados. 
+
+
+[ PENDING ] 3 - 
 Um cliente se torna VIP se ele tiver pelo menos duas locações em seu nome ao mesmo tempo, por exemplo, 
 um cliente loca um carro e antes de devolver este carro ele faz a locação de um outro carro, quando isso acontecer ele se torna um cliente VIP. 
 
-As devoluções em dia e atrasadas têm que ser registradas no sistema. Se ele apresentar alguma devolução em atraso, ele deixa de ser VIP. 
-Para fazer a locação ou reserva de algum carro o cliente deve ter um cadastro com seu nome e telefone. 
 
-Um cliente só pode ter no máximo 3 carros locados. Quando um carro for locado essa informação fica registrada na locadora 
-e o cliente também possui um registro dos carros que estão com ele. Se um cliente deseja locar um carro que está indisponível ele pode fazer uma reserva deste carro.
+
+[ PENDING ] 4 - As devoluções em dia e atrasadas têm que ser registradas no sistema. 
+
+[ PENDING ] 5 - Se ele apresentar alguma devolução em atraso, ele deixa de ser VIP. 
+
+
+[ DONE ]6 - Para fazer a locação ou reserva de algum carro o cliente deve ter um cadastro com seu nome e telefone.
+
+
+
+[ DONE ] 7 - Um cliente só pode ter no máximo 3 carros locados. 
+
+[ DONE ] 8 - Quando um carro for locado essa informação fica registrada na locadora 
+e o cliente também possui um registro dos carros que estão com ele.  
+
+[ PENDING ] 9 - Se um cliente deseja locar um carro que está indisponível ele pode fazer uma reserva deste carro.
+
+
+
 Integrantes: Arthur Lustosa, Igor Natanael, Clenimar Filemon, Roberto Matheus e Nicolas Gabriel
 
 Cliente: Lucas
