@@ -6,8 +6,7 @@ open util/ordering[Time]
 sig Time{}
 
 one sig Locadora { -- Locadora onde todos os carros estão "guardados"
-	clientesVip: set ClienteVip -> Time,
-	carrosDisponiveis:  Carro -> Time,
+	carrosDisponiveis: Carro -> Time,
 	carrosAlugados:  Carro -> Time,
 	carrosDesejados: Carro -> Time,
 	clientes: Cliente -> Time
@@ -19,8 +18,8 @@ sig CarroImp, CarroNac extends Carro{}
 
 sig Cliente {
 	alugadosNac: CarroNac -> Time,
-	alugadosImp: CarroImp -> Time,
-	desejados: Carro -> Time
+	alugadosImp:  CarroImp -> Time,
+  desejados:  Carro -> Time
 }
 
 /*--------------------------------------------Fatos------------------------------------------------------*/
@@ -43,6 +42,7 @@ fact { -- FATOS SOBRE CARROS
 
 fact  { -- FATOS SOBRE CLIENTES
 	all c:Cliente | clienteTemUmaLocadora[c]
+  
 }
 
 /*--------------------------------------------Funções--------------------------------------------------------*/
@@ -62,14 +62,8 @@ pred carroTemUmCliente[car:Carro, t: Time] {
 
 }
 
-<<<<<<< HEAD
-pred alugarCarroImportado[cli: Cliente, car: Carro, loc: Locadora, t,t': Time]{
-	car !in (cli.alugadosImp).t and #(cli.alugadosNac).t + #(cli.alugadosImp).t <= 3 and car != (loc.carrosAlugados).t
-	
-
 pred alugarCarroImportado[cli: Cliente, car: Carro, t,t': Time]{
 	car !in (cli.alugadosImp).t and #(cli.alugadosNac).t + #(cli.alugadosNac).t <= 3
->>>>>>> 45877273b919c74faadb65a35507ddad6db2eea6
 }
 
 pred carroAlugadoOuNao[car: Carro, loc:Locadora, t:Time]{
