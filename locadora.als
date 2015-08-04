@@ -44,7 +44,6 @@ fact { -- FATOS SOBRE CARROS
 }
 
 fact  { -- FATOS SOBRE CLIENTES
-	all c:Cliente | clienteTemUmaLocadora[c]
 	all c:Cliente | one l: Locadora | all t: Time | clienteTemUmaLocadora[c,l,t]
 }
 
