@@ -6,17 +6,15 @@ open util/ordering[Time]
 sig Time{}
 
 one sig Locadora { -- Locadora onde todos os carros estão "guardados"
+	clientes: Cliente -> Time,
 	clientesVip: Cliente -> Time,
  	carrosDisponiveis: Carro -> Time,
-	carrosAlugados: Carro -> Time,
-	carrosDesejados: Carro -> Time,
-	clientes: Cliente -> Time
+	carrosAlugados: Carro -> Time
 }
 
 sig Cliente {
 	alugadosNac: CarroNac -> Time,
-	alugadosImp: CarroImp -> Time,
-    desejados: Carro -> Time
+	alugadosImp: CarroImp -> Time
 }
 
 abstract sig Carro{}
@@ -29,16 +27,15 @@ fact Locadora{
 }
 
 fact Carros{
-	all car: Carro, t: Time, l: Locadora| carroTemUmCliente[car,l, t]
- 	all car: Carro, t: Time, l: Locadora | carroAlugadoOuNao[car,l,t]
-	all car: Carro, t:Time, l: Locadora | carroDesejado[car,l,t]
-	all car: Carro, t:Time, l: Locadora | carroDisponivel[car,l,t]
+	all car: Carro, t: Time, l: Locadora| carroTemUmCliente[car, l, t]
+ 	all car: Carro, t: Time, l: Locadora | carroAlugadoOuNao[car, l, t]
+	all car: Carro, t:Time, l: Locadora | carroDisponivel[car, l, t]
 }
 
 fact  Clientes {
-	some c:Cliente, t:Time,l: Locadora | some t':Time | ehClienteVip[c,l,t,t']
-	all c:Cliente, t: Time, l:Locadora | clienteTemImp[c,l,t]
-	all c:Cliente, loc:Locadora, t: Time | clienteSoAlugaCadastrado[c,loc,t]
+	all c: Cliente, t, t': Time, l: Locadora | ehClienteVip[c, l, t, t']
+	all c: Cliente, t: Time, l: Locadora | clienteTemImp[c,l,t]
+	all c: Cliente, loc:Locadora, t: Time | clienteSoAlugaCadastrado[c,loc,t]
 }
 
 /*--------------------------------------------Funções----------------------------------------------------------*/
@@ -47,7 +44,6 @@ fact  Clientes {
 
 pred init[t: Time] { --Inicializador
 	no (Locadora.clientesVip).t -- Não possui clientes Vips no início
-	no (Locadora.carrosDesejados).t -- Não há carros desejados, pois não há carros alugados
 	no (Locadora.carrosAlugados).t 	-- No tempo inicial a locadora não tem nenhum carro alugado
  	no (Cliente.alugadosNac).t 	-- No tempo inicial nenhum cliente tem carro alugado
 	no (Cliente.alugadosImp).t 	-- No tempo inicial nenhum cliente tem carro alugado
@@ -55,16 +51,12 @@ pred init[t: Time] { --Inicializador
 	all c: Carro | c in (Locadora.carrosDisponiveis).t
 }
 
-pred carroDesejado[car:Carro,l:Locadora,t:Time] {
-	car in (l.carrosDesejados).t => car in (l.carrosAlugados).t
-}
-
-pred clienteSoAlugaCadastrado[cli:Cliente, l:Locadora, t:Time]{
-	((#(cli.alugadosNac).t + #(cli.alugadosImp).t) > 0) => cli in (l.clientes).t
+pred clienteSoAlugaCadastrado[cli: Cliente, loc: Locadora, t: Time]{
+	((#((cli.alugadosNac).t) + #((cli.alugadosImp).t)) > 0) => cli in (loc.clientes).t
 }
 
 pred carroDisponivel[car:Carro,l:Locadora,t:Time]{
-	car in (l.carrosDisponiveis).t => car !in (l.carrosAlugados).t and car !in (l.carrosDesejados).t
+	car in (l.carrosDisponiveis).t => car !in (l.carrosAlugados).t
 }
 
 pred carroTemUmCliente[car:Carro,l:Locadora, t: Time] {
@@ -97,7 +89,9 @@ fact traces {
 
 -- OPERAÇÃO CADASTRAR CLIENTE
 pred cadastrarCliente[cli: Cliente, loc: Locadora, t, t': Time] {
-	(cli !in (loc.clientes).t) => (loc.clientes).t' = (loc.clientes).t + cli
+	cli !in (loc.clientes).t and cli !in (loc.clientesVip).t
+	#(cli.alugadosNac).t = 0 and #(cli.alugadosImp).t = 0
+	(loc.clientes).t' = (loc.clientes).t + cli
 }
 
 -- OPERAÇÃO ALUGAR CARRO IMPORTADO
