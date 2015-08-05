@@ -7,9 +7,9 @@ sig Time{}
 
 one sig Locadora { -- Locadora onde todos os carros estão "guardados"
 	clientesVip: set Cliente -> Time,
- 	carrosDisponiveis:  Carro -> Time,
-	carrosAlugados:  Carro -> Time,
-	carrosDesejados: Carro -> Time,
+ 	carrosDisponiveis: set Carro -> Time,
+	carrosAlugados: set Carro -> Time,
+	carrosDesejados: set Carro -> Time,
 	clientes: Cliente -> Time
 }
 
@@ -29,8 +29,9 @@ sig CarroNac extends Carro{}
 fact traces {
 	init [first]	
  	all pre: Time-last | let pos = pre.next |
-		some cli : Cliente, loc: Locadora |
-			clienteVipNaLista[cli,loc,pre, pos] or viraClienteVip[cli, loc, pre, pos]
+		some cli : Cliente, loc: Locadora, carN:CarroNac, carImp: CarroImp|
+			clienteVipNaLista[cli,loc,pre, pos] or viraClienteVip[cli, loc, pre, pos] or
+			alugarCarroNac[cli,carN,loc,pre,pos] or alugarCarroImp[cli,carImp,loc,pre,pos] 
 }
 
 fact Locadora{
@@ -84,8 +85,16 @@ pred viraClienteVip[c:Cliente,l:Locadora,t, t':Time]{
 	(l.clientesVip).t' = (l.clientesVip).t + c
 }
 
-pred alugarCarroImportado[cli: Cliente, car: Carro, t,t': Time]{
+pred alugarCarroImp[cli: Cliente, car: CarroImp, l:Locadora, t,t': Time]{
+	car in (l.carrosDisponiveis).t and cli in (l.clientesVip).t
 	car !in (cli.alugadosImp).t and #(cli.alugadosNac).t + #(cli.alugadosNac).t <= 3
+	(cli.alugadosImp).t' = (cli.alugadosImp).t + car
+}
+
+pred alugarCarroNac[cli: Cliente, car: CarroNac, l:Locadora, t,t': Time]{
+	car in (l.carrosDisponiveis).t and cli in (l.clientes).t
+	car !in (cli.alugadosNac).t and #(cli.alugadosNac).t + #(cli.alugadosNac).t <= 3
+	(cli.alugadosNac).t' = (cli.alugadosNac).t + car
 }
 
 pred carroAlugadoOuNao[car: Carro, loc:Locadora, t:Time]{
