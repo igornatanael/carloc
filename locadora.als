@@ -105,4 +105,4 @@ pred cadastrarCliente[cli: Cliente, loc: Locadora, t, t': Time] {
 pred show[]{
 }
 
-run show for 10
+run show for 10  but exactly 5 Carro, exactly 5 Cliente
