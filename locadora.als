@@ -6,7 +6,7 @@ open util/ordering[Time]
 sig Time{}
 
 one sig Locadora { -- Locadora onde todos os carros estão "guardados"
-	clientesVip: set ClienteVip -> Time,
+	clientesVip: set Cliente -> Time,
  	carrosDisponiveis:  Carro -> Time,
 	carrosAlugados:  Carro -> Time,
 	carrosDesejados: Carro -> Time,
@@ -18,7 +18,6 @@ sig Cliente {
 	alugadosImp:  CarroImp -> Time,
    desejados:  Carro -> Time
 }
-sig ClienteVip in Cliente{}
 
 abstract sig Carro{}
 sig CarroImp extends Carro{}
@@ -31,20 +30,23 @@ fact traces {
 	init [first]	
  	all pre: Time-last | let pos = pre.next |
 		some cli : Cliente, loc: Locadora |
-			clienteVipNaLista[cli,loc,pre, pos]	
+			clienteVipNaLista[cli,loc,pre, pos] or viraClienteVip[cli, loc, pre, pos]
 }
 
-fact{ -- FATOS SOBRE LOCADORA
+fact Locadora{
 	one Locadora
 }
 
-fact { -- FATOS SOBRE CARROS
+fact Carros{
 	all car: Carro | all t: Time | carroTemUmCliente[car, t]
  	all car: Carro | all t: Time, l: Locadora | carroAlugadoOuNao[car,l,t]
+	all car: Carro, t:Time, l: Locadora | carroDesejado[car,l,t]
+	all car: Carro, t:Time, l: Locadora | carroDisponivel[car,l,t]
 }
 
-fact  { -- FATOS SOBRE CLIENTES
+fact  Clientes {
 	all c:Cliente | one l: Locadora | all t: Time | clienteTemUmaLocadora[c,l,t]
+	some c:Cliente, t:Time,l: Locadora | ehClienteVip[c,l,t]
 }
 
 /*--------------------------------------------Funções--------------------------------------------------------*/
@@ -61,8 +63,25 @@ pred init[t: Time] { --Inicializador
 	no (Cliente.alugadosImp).t 	-- No tempo inicial nenhum cliente tem carro alugado
 }
 
+pred carroDesejado[car:Carro,l:Locadora,t:Time]{
+	car in (l.carrosDesejados).t => car in (l.carrosAlugados).t
+}
+
+pred carroDisponivel[car:Carro,l:Locadora,t:Time]{
+	car in (l.carrosDisponiveis).t => car !in (l.carrosAlugados).t and car !in (l.carrosDesejados).t
+}
+
 pred carroTemUmCliente[car:Carro, t: Time] {
 
+}
+
+pred ehClienteVip[c:Cliente,l: Locadora, t:Time]{
+	c in (l.clientesVip).t
+}
+
+pred viraClienteVip[c:Cliente,l:Locadora,t, t':Time]{
+	#(c.alugadosNac).t >= 2
+	(l.clientesVip).t' = (l.clientesVip).t + c
 }
 
 pred alugarCarroImportado[cli: Cliente, car: Carro, t,t': Time]{
@@ -77,7 +96,7 @@ pred clienteTemUmaLocadora[cli:Cliente, loc: Locadora, t: Time] {
 	cli in (loc.clientes).t
 }
 
-pred clienteVipNaLista[cli:ClienteVip, loc: Locadora, t: Time, t': Time]{
+pred clienteVipNaLista[cli:Cliente, loc: Locadora, t: Time, t': Time]{
 	cli !in (loc.clientesVip).t => (loc.clientesVip).t' = (loc.clientesVip).t' + cli
  }
 
