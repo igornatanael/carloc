@@ -38,9 +38,11 @@ fact Carros{
 }
 
 fact  Clientes {
-	some c:Cliente, t:Time,l: Locadora | some t':Time | ehClienteVip[c,l,t,t']
+	--some c:Cliente, t:Time,l: Locadora | some t':Time | ehClienteVip[c,l,t,t']
 	all c:Cliente, t: Time, l:Locadora | clienteTemImp[c,l,t]
-	all c:Cliente, loc:Locadora, t: Time | clienteSoAlugaCadastrado[c,loc,t]
+--	all c:Cliente, loc:Locadora, t: Time | clienteSoAlugaCadastrado[c,loc,t]
+	!one c:Cliente, loc:Locadora, t:Time | clienteSoAlugaCadastrado[c,loc,t]
+	all c:Cliente, loc:Locadora, t:Time | c in (loc.clientesVip).t => c in (loc.clientes).t
 }
 
 /*--------------------------------------------Funções--------------------------------------------------------*/
@@ -56,7 +58,7 @@ pred init[t: Time] { --Inicializador
  	no (Cliente.alugadosNac).t 	-- No tempo inicial nenhum cliente tem carro alugado
 	no (Cliente.alugadosImp).t 	-- No tempo inicial nenhum cliente tem carro alugado
 	no (Locadora.clientes).t -- Não possui clientes cadastrados no início
-	all c: Carro | c in (Locadora.carrosDisponiveis).t
+	all c: Carro | c in (Locadora.carrosDisponiveis).t -- todos os carros estão disponíveis no início
 }
 
 pred carroDesejado[car:Carro,l:Locadora,t:Time]{
@@ -64,7 +66,7 @@ pred carroDesejado[car:Carro,l:Locadora,t:Time]{
 }
 
 pred clienteSoAlugaCadastrado[cli:Cliente, l:Locadora, t:Time]{
-	(#(cli.alugadosNac).t + #(cli.alugadosImp).t) > 0 => cli in (l.clientes).t
+	(#(cli.alugadosNac).t + #(cli.alugadosImp).t) > 0 and cli !in (l.clientes).t
 }
 
 pred carroDisponivel[car:Carro,l:Locadora,t:Time]{
@@ -76,7 +78,7 @@ pred carroTemUmCliente[car:Carro,l:Locadora, t: Time] {
 }
 
 pred ehClienteVip[c:Cliente,l: Locadora, t:Time,t':Time]{
-	c in (l.clientesVip).t
+	c in (l.clientesVip).t and c in (l.clientes).t
 	#(c.alugadosNac).t' >= 2
 }
 
@@ -125,6 +127,7 @@ pred alugarCarroNac[cli: Cliente, car: CarroNac, l:Locadora, t,t': Time]{
 
 pred viraClienteVip[c:Cliente,l:Locadora,t, t':Time]{
 	#(c.alugadosNac).t >= 2
+	c in (l.clientes).t and c !in (l.clientesVip).t
 	(l.clientesVip).t' = (l.clientesVip).t + c
 }
 
