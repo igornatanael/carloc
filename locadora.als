@@ -35,7 +35,7 @@ fact Carros{
 fact  Clientes {
 	--some c:Cliente, t:Time,l: Locadora | some t':Time | ehClienteVip[c,l,t,t']
 	all c:Cliente, t: Time, l:Locadora | clienteTemImp[c,l,t]
---	all c:Cliente, loc:Locadora, t: Time | clienteSoAlugaCadastrado[c,loc,t]
+	all c:Cliente, loc:Locadora, t: Time | clienteSoAlugaCadastrado[c,loc,t]
 	!one c:Cliente, loc:Locadora, t:Time | clienteSoAlugaCadastrado[c,loc,t]
 	all c:Cliente, loc:Locadora, t:Time | c in (loc.clientesVip).t => c in (loc.clientes).t
 
@@ -55,7 +55,7 @@ pred init[t: Time] { --Inicializador
 }
 
 pred clienteSoAlugaCadastrado[cli:Cliente, loc:Locadora, t:Time]{
-	((#((cli.alugadosNac).t) + #((cli.alugadosImp).t)) > 0) => cli in (loc.clientes).t
+	#(cli.alugadosNac).t > 0 or #(cli.alugadosImp).t > 0 => cli in (loc.clientes).t
 }
 
 pred carroDisponivel[car:Carro,l:Locadora,t:Time]{
