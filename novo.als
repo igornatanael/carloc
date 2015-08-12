@@ -32,7 +32,7 @@ fact Locadora{
 
 fact Carros{
 	all car: Carro, loc: Locadora, t: Time | carroNaLocadora[car,loc,t]
-
+	
 }
 
 fact  Clientes {
@@ -40,8 +40,9 @@ fact  Clientes {
 	all cli:Cliente,t:Time | #(cli.alugadosNac).t + #(cli.alugadosImp).t <= 3
 	all t: Time | carroNacEhAlugadoAUmUnicoCliente[t] 
 	all t: Time | carroImpEhAlugadoAUmUnicoCliente[t] 
-	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosNac = 0
-	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosImp = 0
+	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosNac.t = 0
+	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosImp.t = 0
+	all c: Cliente, t: Time | #(c.alugadosNac).t +#(c.alugadosImp).t <= 3
 }
 
 /*--------------------------------------------Funções----------------------------------------------------------*/
@@ -77,6 +78,14 @@ pred carroImpEhAlugadoAUmUnicoCliente[t: Time] { -- Um animal pertence a um úni
 	(all cli2:Cliente-cli| car !in cli2.alugadosImp.t)
 }
 
+pred carrosDeClientesNaoMudam[c:Cliente,t,t': Time]{
+	c.alugadosNac.t = c.alugadosNac.t' and
+	c.alugadosImp.t = c.alugadosImp.t'
+}
+
+pred locadoraNaoMuda[l:Locadora,cli:Cliente,t,t':Time]{
+	l.clientes.t = l.clientes.t' - cli
+}
 /*
 pred clienteSoAlugaCadastrado[cli:Cliente, loc:Locadora, t:Time]{
 	#(cli.alugadosNac).t > 0 or #(cli.alugadosImp).t > 0 => cli in (loc.clientes).t
@@ -117,6 +126,7 @@ fact traces {
 pred cadastrarCliente[cli: Cliente, loc: Locadora, t, t': Time] {
 	cli !in (loc.clientes).t
 	(loc.clientes).t' = (loc.clientes).t + cli
+	locadoraNaoMuda[loc,cli,t,t']
 }
 
 -- OPERAÇÃO TORNAR UM CLIENTE VIP
@@ -135,6 +145,7 @@ pred alugarCarroNac[cli: Cliente, car: CarroNac, l:Locadora, t,t': Time]{
 	(cli.alugadosNac).t' = (cli.alugadosNac).t + car
 	(l.carrosAlugados).t' = (l.carrosAlugados).t + car
 	viraClienteVip[cli,l,t,t']
+	all cli2:Cliente - cli | carrosDeClientesNaoMudam[cli2,t,t']
 }
 
 /*
