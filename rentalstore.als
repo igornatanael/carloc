@@ -39,6 +39,12 @@ fact Loja {
 	all c : Carro, l : Loja, t : Time | c in (l.carrosDisponiveis).t or c in (l.carrosAlugados).t
 }
 
+fact Locadora{
+	#Cliente = 3
+	#CarroImp = 3
+	#CarroNac = 5
+}
+
 fact Cliente {
 	// número máximo de carros alugados ao mesmo tempo = 3
 	all c : Cliente, t : Time | #((c.alugadosNac).t) + #((c.alugadosImp).t) <= 3
