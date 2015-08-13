@@ -35,8 +35,10 @@ fact Locadora{
 }
 
 fact Carros{
-	all car: Carro, loc: Locadora, t: Time | carroNaLocadora[car,loc,t]
-	all loc: Locadora, t: Time, car:Carro | some cli: Cliente | carroAlugado[car, cli,loc,t]
+	all c: Carro, t:Time, l:Locadora | c in (l.carrosDisponiveis).t <=> c !in (l.carrosAlugados).t
+	--all car: Carro, loc: Locadora, t: Time | carroNaLocadora[car,loc,t]
+	all loc: Locadora, t: Time| some car:Carro, cli: Cliente | carroAlugado[car, cli,loc,t]
+	all car: CarroImp, loc: Locadora, t: Time, cli: Cliente | importadoSohVip[car, cli, loc, t]
 }
 
 fact  Clientes {
@@ -45,7 +47,7 @@ fact  Clientes {
 	all t: Time | carroImpEhAlugadoAUmUnicoCliente[t] 
 	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosNac.t = 0
 	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosImp.t = 0
-	all c: Cliente, t: Time | #((c.alugadosNac) +(c.alugadosImp)).t <= 3
+	
 }
 
 /*--------------------------------------------Funções----------------------------------------------------------*/
@@ -71,6 +73,10 @@ pred clienteNaoEhVip[c:Cliente, l:Locadora, t:Time]{
 	c in (l.clientesVip).t => c in (l.clientes).t
 }
 
+pred importadoSohVip[car:CarroImp, cli:Cliente, loc:Locadora, t:Time]{
+	car in (cli.alugadosImp).t => (cli in (loc.clientesVip).t)
+}
+
 pred carroNacEhAlugadoAUmUnicoCliente[t: Time] { -- Um carro só é alugado a um só dono
 	all car:Carro,cli:Cliente | (car in cli.alugadosNac.t) => 
 	(all cli2:Cliente-cli| car !in cli2.alugadosNac.t)
@@ -83,8 +89,8 @@ pred carroImpEhAlugadoAUmUnicoCliente[t: Time] { -- Um carro só é alugado a um
 }
 
 pred carroAlugado[car:Carro, cli:Cliente, loc: Locadora, t:Time]{
-	((car in cli.alugadosNac.t or car in cli.alugadosImp.t) <=> car in (loc.carrosAlugados).t) and
-  	(!(car in cli.alugadosNac.t or car in cli.alugadosImp.t) <=> car in (loc.carrosDisponiveis).t)
+	(car in cli.alugadosNac.t or car in cli.alugadosImp.t) <=> car in (loc.carrosAlugados).t
+  	!(car in cli.alugadosNac.t or car in cli.alugadosImp.t) <=> car in (loc.carrosDisponiveis).t
 }
 
 pred carrosDeClientesNaoMudam[c:Cliente,t,t': Time]{
@@ -94,45 +100,20 @@ pred carrosDeClientesNaoMudam[c:Cliente,t,t': Time]{
 
 pred locadoraNaoMuda[l:Locadora,cli:Cliente,t,t':Time]{
 	(l.clientes).t = (l.clientes).t' - cli
-	(l.clientesVip).t = (l.clientesVip).t'
 }
 
 pred clientesVipNaoMudam[l:Locadora, cli:Cliente, t,t':Time]{
 	(l.clientesVip).t = (l.clientesVip).t' - cli
 }
 
-
-/*
-pred clienteSoAlugaCadastrado[cli:Cliente, loc:Locadora, t:Time]{
-	#(cli.alugadosNac).t > 0 or #(cli.alugadosImp).t > 0 => cli in (loc.clientes).t
-}
-
-pred carroTemUmCliente[car:Carro,l:Locadora, t: Time] {
-	car in (l.carrosAlugados).t => one c:Cliente | car in (c.alugadosNac).t or car in (c.alugadosImp).t 
-}
-
-pred carroAlugadoOuNao[car: Carro, loc:Locadora, t:Time]{
-	car in (loc.carrosAlugados).t and car !in (loc.carrosDisponiveis).t or
-	car !in (loc.carrosAlugados).t and car in (loc.carrosDisponiveis).t 
-}
-
-pred clienteTemImp[cli:Cliente, loc: Locadora, t: Time]{ -- Cliente só tem carro importado se for vip
-	#(cli.alugadosImp).t > 0 => cli in (loc.clientesVip).t
- }
-
-pred carroDisponivel[car:Carro, loc:Locadora, cli:Cliente, t: Time]{
-	car in (loc.carrosDisponiveis).t => car !in (cli.alugadosNac).t and car !in (cli.alugadosImp).t
-}
-
-
 /*--------------------------------------------Traces-----------------------------------------------------------*/
 
 fact traces {
 	init [first]	
  	all pre: Time-last | let pos = pre.next |
-	one cli:Cliente, loc:Locadora | some car:CarroNac, car2:CarroImp | 
-	cadastrarCliente[cli,loc,pre,pos] or alugarCarroNac[cli,car,loc,pre,pos] or 
-	alugarCarroImp[cli,car2,loc,pre,pos]
+	one cli:Cliente, loc:Locadora | --some car:CarroNac, car2:CarroImp | 
+	cadastrarCliente[cli,loc,pre,pos] --or alugarCarroNac[cli,car,loc,pre,pos] or 
+	--alugarCarroImp[cli,car2,loc,pre,pos]
 	--some cli : Cliente | one loc: Locadora | some carN:CarroNac | some carImp: CarroImp |
 		--	alugarCarroNac[cli,carN,loc,pre,pos] or alugarCarroImp[cli,carImp,loc,pre,pos] or
 		--	viraClienteVip[cli,loc,pre,pos] or cadastrarCliente[cli, loc,pre,pos]
@@ -142,9 +123,9 @@ fact traces {
 
 -- OPERAÇÃO CADASTRAR CLIENTE
 pred cadastrarCliente[cli: Cliente, loc: Locadora, t, t': Time] {
-	cli !in (loc.clientes).t
+	cli !in (loc.clientes).t =>
 	(loc.clientes).t' = (loc.clientes).t + cli
-	locadoraNaoMuda[loc,cli,t,t']
+--	locadoraNaoMuda[loc,cli,t,t']
 }
 
 -- OPERAÇÃO TORNAR UM CLIENTE VIP
@@ -169,7 +150,7 @@ pred alugarCarroNac[cli: Cliente, car: CarroNac, l:Locadora, t,t': Time]{
 
 -- OPERAÇÃO ALUGAR CARRO IMPORTADO
 pred alugarCarroImp[cli: Cliente, car: CarroImp, l:Locadora, t,t': Time]{
-	((cli in (l.clientes).t) and	car in ((l.carrosDisponiveis).t) and (cli in (l.clientesVip).t) and
+	((cli in (l.clientes).t) and car in ((l.carrosDisponiveis).t) and (cli in (l.clientesVip).t) and
 	car !in (cli.alugadosImp).t and #(cli.alugadosNac).t + #(cli.alugadosNac).t <= 3) => 
 	(l.carrosDisponiveis).t' = (l.carrosDisponiveis).t - car 
 	(l.carrosAlugados).t' = (l.carrosAlugados).t + car
@@ -177,6 +158,8 @@ pred alugarCarroImp[cli: Cliente, car: CarroImp, l:Locadora, t,t': Time]{
 	--viraClienteVip[cli,l,t,t']
 	all cli2:Cliente - cli | carrosDeClientesNaoMudam[cli2,t,t']
 }
+
+
 /*
 -- OPERAÇÃO DEVOLVER CARRO IMPORTADO
 pred devolverCarroImp[cli: Cliente, car: CarroImp, l:Locadora, t,t': Time]{
@@ -204,4 +187,4 @@ pred devolverCarroNac[cli: Cliente, car: CarroNac, l:Locadora, t,t': Time]{
 pred show[]{
 }
 
-run show for 10
+run show for 10 

@@ -10,6 +10,7 @@ sig Time {}
 one sig Loja {
 	clientes : Cliente -> Time,
 	clientesVip : Cliente -> Time,
+	carros: carrosAlugados + carrosDisponiveis,
 	carrosDisponiveis : Carro -> Time,
 	carrosAlugados : Carro -> Time
 }
