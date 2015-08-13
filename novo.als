@@ -32,7 +32,7 @@ fact Locadora{
 
 fact Carros{
 	all car: Carro, loc: Locadora, t: Time | carroNaLocadora[car,loc,t]
-	
+	all loc: Locadora, t: Time | some cli: Cliente, car: Carro | carroAlugado[car,cli,loc,t]
 }
 
 fact  Clientes {
@@ -42,7 +42,7 @@ fact  Clientes {
 	all t: Time | carroImpEhAlugadoAUmUnicoCliente[t] 
 	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosNac.t = 0
 	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosImp.t = 0
-	all c: Cliente, t: Time | #(c.alugadosNac).t +#(c.alugadosImp).t <= 3
+	all c: Cliente, t: Time | #((c.alugadosNac) +(c.alugadosImp)).t <= 3
 }
 
 /*--------------------------------------------Funções----------------------------------------------------------*/
@@ -78,6 +78,11 @@ pred carroImpEhAlugadoAUmUnicoCliente[t: Time] { -- Um animal pertence a um úni
 	(all cli2:Cliente-cli| car !in cli2.alugadosImp.t)
 }
 
+pred carroAlugado[car:Carro, cli:Cliente, loc: Locadora, t:Time]{
+	((car in cli.alugadosNac.t or car in cli.alugadosImp.t) => car in loc.carrosAlugados.t) and 
+   (!(car in cli.alugadosNac.t or car in cli.alugadosImp.t) => car in loc.carrosDisponiveis.t)
+}
+
 pred carrosDeClientesNaoMudam[c:Cliente,t,t': Time]{
 	c.alugadosNac.t = c.alugadosNac.t' and
 	c.alugadosImp.t = c.alugadosImp.t'
@@ -85,6 +90,7 @@ pred carrosDeClientesNaoMudam[c:Cliente,t,t': Time]{
 
 pred locadoraNaoMuda[l:Locadora,cli:Cliente,t,t':Time]{
 	l.clientes.t = l.clientes.t' - cli
+	l.clientesVip.t = l.clientesVip.t'
 }
 /*
 pred clienteSoAlugaCadastrado[cli:Cliente, loc:Locadora, t:Time]{
@@ -131,7 +137,7 @@ pred cadastrarCliente[cli: Cliente, loc: Locadora, t, t': Time] {
 
 -- OPERAÇÃO TORNAR UM CLIENTE VIP
 pred viraClienteVip[cli: Cliente, loc: Locadora,t, t':Time]{
-	--(#(cli.alugadosNac).t) + (#(cli.alugadosImp).t) >= 2 and
+	#((cli.alugadosNac).t + (cli.alugadosImp).t) >= 2 and
 	cli in (loc.clientes).t =>
 	(loc.clientes).t' = (loc.clientes).t - cli
 	(loc.clientesVip).t' = (loc.clientesVip).t + cli
@@ -184,4 +190,4 @@ pred devolverCarroNac[cli: Cliente, car: CarroNac, l:Locadora, t,t': Time]{
 pred show[]{
 }
 
-run show for 10
+run show for 5
