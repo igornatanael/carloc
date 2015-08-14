@@ -9,17 +9,18 @@ one sig Locadora {
 	clientes: Cliente -> Time,
 	clientesVip: Cliente -> Time,
  	carrosDisponiveis: Carro -> Time,
-	carrosAlugados: Carro -> Time
+	carrosAlugados: Carro -> Time,
+--	clientesSujos: Cliente -> Time
 }
 
-sig Nome{}
-sig Telefone{}
 sig Cliente {
+	nome: one Nome,
+	telefone: one Telefone,
 	alugadosNac: CarroNac -> Time,
 	alugadosImp: CarroImp -> Time
 }
 
-abstract sig Carro{}
+abstract sig Carro, Nome, Telefone{}
 sig CarroImp extends Carro{}
 sig CarroNac extends Carro{}
 
@@ -29,6 +30,7 @@ fact Locadora{
 	all c: Carro, cli: Cliente, t: Time |  !((c in cli.alugadosNac.t) and (c in Locadora.carrosDisponiveis.t))
 	all c: Carro, cli: Cliente, t: Time |  !((c in cli.alugadosImp.t) and (c in Locadora.carrosDisponiveis.t))
 	all c: Carro, t: Time | some cli: Cliente | c in Locadora.carrosAlugados.t <=> (c in cli.alugadosNac.t or c in cli.alugadosImp.t)
+	all t: Time | all c: CarroImp | c in Locadora.carrosAlugados.t <=> one cli: Cliente | c in cli.alugadosImp.t and cli in Locadora.clientesVip.(t.prev)
 }
 
 fact Carros{
@@ -38,6 +40,8 @@ fact Carros{
 }
 
 fact  Clientes {
+	all n: Nome | one n.~nome -- Todo nome está associado a um único cliente
+	all tel: Telefone | one tel.~telefone --Todo endereço está associado a algum cliente
 	all cli:Cliente, t:Time | #(cli.alugadosNac + cli.alugadosImp).t < 2 => cli !in (Locadora.clientesVip).t
 	all cli:Cliente, loc:Locadora, t:Time | clienteEhVip[cli,loc,t]
 	all cli:Cliente,t:Time | #(cli.alugadosNac).t + #(cli.alugadosImp).t <= 3
@@ -46,6 +50,7 @@ fact  Clientes {
 	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosNac.t = 0
 	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosImp.t = 0
 	all c: Cliente, t: Time | #((c.alugadosNac) +(c.alugadosImp)).t <= 3
+	all c: Cliente, t: Time | #(c.alugadosNac).t >= 2 => c in (Locadora.clientesVip).(t.next)
 }
 
 /*--------------------------------------------Funções----------------------------------------------------------*/
@@ -58,6 +63,7 @@ pred init[t: Time] { --Inicializador
  	no (Cliente.alugadosNac).t 	-- No tempo inicial nenhum cliente tem carro alugado
 	no (Cliente.alugadosImp).t 	-- No tempo inicial nenhum cliente tem carro alugado
 	no (Locadora.clientes).t -- Não possui clientes cadastrados no início
+--	no (Locadora.clientesSujos).t
 	all c: Carro | c in (Locadora.carrosDisponiveis).t -- todos os carros estão disponíveis no início
 }
 
@@ -100,24 +106,6 @@ pred locadoraNaoMuda[l:Locadora,cli:Cliente,t,t':Time]{
 	l.clientesVip.t = l.clientesVip.t'
 }
 
-/*
-pred clienteSoAlugaCadastrado[cli:Cliente, loc:Locadora, t:Time]{
-	#(cli.alugadosNac).t > 0 or #(cli.alugadosImp).t > 0 => cli in (loc.clientes).t
-}
-
-pred carroAlugadoOuNao[car: Carro, loc:Locadora, t:Time]{
-	car in (loc.carrosAlugados).t and car !in (loc.carrosDisponiveis).t or
-	car !in (loc.carrosAlugados).t and car in (loc.carrosDisponiveis).t 
-}
-
-pred clienteTemImp[cli:Cliente, loc: Locadora, t: Time]{ -- Cliente só tem carro importado se for vip
-	#(cli.alugadosImp).t > 0 => cli in (loc.clientesVip).t
- }
-
-pred carroDisponivel[car:Carro, loc:Locadora, cli:Cliente, t: Time]{
-	car in (loc.carrosDisponiveis).t => car !in (cli.alugadosNac).t and car !in (cli.alugadosImp).t
-}
-
 
 /*--------------------------------------------Traces-----------------------------------------------------------*/
 
@@ -125,10 +113,7 @@ fact traces {
 	init [first]	
  	all pre: Time-last | let pos = pre.next |
 	one cli:Cliente, loc:Locadora | some car:CarroNac, carImp: CarroImp | all cli2:Cliente | clientePermanece[cli2,pre,pos] 
-	and (cadastrarCliente[cli,loc,pre,pos] or alugarCarroNac[cli,car,loc,pre,pos] or alugarCarroImp[cli,carImp,loc,pre,pos])
-	--some cli : Cliente | one loc: Locadora | some carN:CarroNac | some carImp: CarroImp |
-		--	alugarCarroNac[cli,carN,loc,pre,pos] or alugarCarroImp[cli,carImp,loc,pre,pos] or
-		--	viraClienteVip[cli,loc,pre,pos] or cadastrarCliente[cli, loc,pre,pos]
+	and (cadastrarCliente[cli,loc,pre,pos] or alugarCarroNac[cli,car,loc,pre,pos] or alugarCarroImp[cli,carImp,loc,pre,pos] )
 }
 
 /*--------------------------------------------Operações--------------------------------------------------------*/
@@ -168,31 +153,47 @@ pred alugarCarroImp[cli: Cliente, car: CarroImp, l: Locadora, t, t': Time]{
 	(l.carrosAlugados).t' = (l.carrosAlugados).t + car
 	all cli2: Cliente - cli | carrosDeClientesNaoMudam[cli2, t, t']
 }
-
-
 /*
-
 -- OPERAÇÃO DEVOLVER CARRO IMPORTADO
-pred devolverCarroImp[cli: Cliente, car: CarroImp, l:Locadora, t,t': Time]{
-	cli in (l.clientes).t and	car in (l.carrosAlugados).t and
-	car in (cli.alugadosImp).t =>
-	(cli.alugadosImp).t' = (cli.alugadosImp).t - car
-	(l.carrosDisponiveis).t' = (l.carrosDisponiveis).t + car
-	(l.carrosAlugados).t' = (l.carrosAlugados).t - car
+pred devolverCarroAtrasado[cli:Cliente, l:Locadora, t,t': Time]{
+	one car:Carro | car in (cli.alugadosNac).t =>
+	(cli.alugadosNac.t' = cli.alugadosNac.t - car and
+	l.carrosDisponiveis.t' = l.carrosDisponiveis.t +car and
+	l.carrosAlugados.t' = ((l.carrosAlugados).t - car) and
+	l.clientesVip.t' = l.clientesVip.t - cli and
+	l.clientesSujos.t' = l.clientesSujos.t + cli)
 }
 
--- OPERAÇÃO DEVOLVER CARRO NACIONAL
-pred devolverCarroNac[cli: Cliente, car: CarroNac, l:Locadora, t,t': Time]{
-	cli in (l.clientes).t and	car in (l.carrosAlugados).t and
-	car in (cli.alugadosNac).t =>
-	(l.carrosDisponiveis).t' = (l.carrosDisponiveis).t + car	
-	(cli.alugadosNac).t' = (cli.alugadosNac).t - car
-	(l.carrosAlugados).t' = (l.carrosAlugados).t - car
-}
 
 /*--------------------------------------------Asserts----------------------------------------------------------*/
+
+assert todaLocadoraTemMaisDeUmCarro {
+ all l: Locadora ,t:Time| #(l.carrosDisponiveis.t + l.carrosAlugados.t) > 1
+}
+
+assert todoCarroEstaNaLocadora{
+  all car:Carro,t:Time | ((car in Locadora.carrosDisponiveis.t) or (car in Locadora.carrosAlugados.t))
+} 
+
+assert todoCarroEalugadoApenasAumCliente {
+ all car:Carro,cli:Cliente, t: Time| ((car in cli.alugadosNac.t) or (car in cli.alugadosImp.t) => (all c:Cliente-cli| (car !in c.alugadosNac.t) and (car !in c.alugadosImp.t) ))
+}
+
+assert todoClienteTemUmNome {
+ 	all cli: Cliente | one cli.nome 
+}
+  
+assert todoClienteTemUmTelefone {
+ 	all cli: Cliente | one cli.telefone 
+}
+
+check todaLocadoraTemMaisDeUmCarro
+check todoClienteTemUmTelefone
+check todoClienteTemUmNome 
+check todoCarroEalugadoApenasAumCliente 
+check todoCarroEstaNaLocadora
 
 pred show[]{
 }
 
-run show for 10
+run show for 8

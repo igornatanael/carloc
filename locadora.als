@@ -24,6 +24,10 @@ sig CarroNac extends Carro{}
 /*--------------------------------------------Fatos------------------------------------------------------------*/
 
 fact Locadora{
+	#Cliente = 3
+	#CarroImp = 3
+	#CarroNac = 5
+
 }
 
 fact Carros{

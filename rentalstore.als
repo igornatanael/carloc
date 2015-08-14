@@ -10,6 +10,7 @@ sig Time {}
 one sig Loja {
 	clientes : Cliente -> Time,
 	clientesVip : Cliente -> Time,
+	carros: carrosAlugados + carrosDisponiveis,
 	carrosDisponiveis : Carro -> Time,
 	carrosAlugados : Carro -> Time
 }
@@ -37,6 +38,12 @@ sig CarroNac, CarroImp extends Carro {}
 fact Loja {
 	// a loja tem carros
 	all c : Carro, l : Loja, t : Time | c in (l.carrosDisponiveis).t or c in (l.carrosAlugados).t
+}
+
+fact Locadora{
+	#Cliente = 3
+	#CarroImp = 3
+	#CarroNac = 5
 }
 
 fact Cliente {
