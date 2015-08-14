@@ -37,34 +37,55 @@ fact Carros{
 	all car: Carro, loc: Locadora, t: Time | carroNaLocadora[car,loc,t]
 	all loc: Locadora, t: Time | some cli: Cliente, car: Carro | carroAlugado[car,cli,loc,t]
 	all car:CarroImp,cli:Cliente, t:Time | car in (cli.alugadosImp).t => cli in (Locadora.clientesVip).t
+	all car:Carro, t:Time | car in todosOsCarros[t]
 }
 
 fact  Clientes {
 	all n: Nome | one n.~nome -- Todo nome está associado a um único cliente
 	all tel: Telefone | one tel.~telefone --Todo endereço está associado a algum cliente
-	all cli:Cliente, t:Time | #(cli.alugadosNac + cli.alugadosImp).t < 2 => cli !in (Locadora.clientesVip).t
+	all cli:Cliente, t:Time | #carrosDoCliente[cli,t] < 2 => cli !in (Locadora.clientesVip).t
 	all cli:Cliente, loc:Locadora, t:Time | clienteEhVip[cli,loc,t]
-	all cli:Cliente,t:Time | #(cli.alugadosNac).t + #(cli.alugadosImp).t <= 3
+	all cli:Cliente,t:Time | #carrosDoCliente[cli,t] <= 3
 	all t: Time | carroEhAlugadoAUmUnicoCliente[t] 
 	all t: Time | carroImpEhAlugadoAUmUnicoCliente[t] 
-	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosNac.t = 0
-	all t:Time, cli:Cliente, loc:Locadora | cli !in (loc.clientes).t => #cli.alugadosImp.t = 0
-	all c: Cliente, t: Time | #((c.alugadosNac) +(c.alugadosImp)).t <= 3
+	all t:Time, cli:Cliente, loc:Locadora | cli !in clientesLocadora[loc,t] => #cli.alugadosNac.t = 0
+	all t:Time, cli:Cliente, loc:Locadora | cli !in clientesLocadora[loc,t] => #cli.alugadosImp.t = 0
 	all c: Cliente, t: Time | #(c.alugadosNac).t >= 2 => c in (Locadora.clientesVip).(t.next)
 }
 
 /*--------------------------------------------Funções----------------------------------------------------------*/
 
+
+fun carrosDoCliente[cli: Cliente, t: Time]: set Carro{
+	cli.(alugadosNac + alugadosImp).t
+}
+
+fun carrosDisp[t: Time]: set Carro {
+	Locadora.carrosDisponiveis.t
+}
+
+fun carrosAlug[t: Time]: set Carro {
+	Locadora.carrosAlugados.t
+}
+
+fun clientesLocadora[loc: Locadora, t: Time]: set Cliente{
+	loc.clientes.t
+}
+
+fun todosOsCarros[t:Time]: set Carro{
+	Locadora.(carrosAlugados + carrosDisponiveis).t
+}
+
 /*--------------------------------------------Predicados-------------------------------------------------------*/
 
 pred init[t: Time] { --Inicializador
 	no (Locadora.clientesVip).t -- Não possui clientes Vips no início
-	no (Locadora.carrosAlugados).t 	-- No tempo inicial a locadora não tem nenhum carro alugado
+	no carrosAlug[t] 	-- No tempo inicial a locadora não tem nenhum carro alugado
  	no (Cliente.alugadosNac).t 	-- No tempo inicial nenhum cliente tem carro alugado
 	no (Cliente.alugadosImp).t 	-- No tempo inicial nenhum cliente tem carro alugado
 	no (Locadora.clientes).t -- Não possui clientes cadastrados no início
 --	no (Locadora.clientesSujos).t
-	all c: Carro | c in (Locadora.carrosDisponiveis).t -- todos os carros estão disponíveis no início
+	all c: Carro | c in carrosDisp[t] -- todos os carros estão disponíveis no início
 }
 
 pred carroNaLocadora[c:Carro, l: Locadora, t:Time]{
@@ -192,6 +213,8 @@ check todoClienteTemUmTelefone
 check todoClienteTemUmNome 
 check todoCarroEalugadoApenasAumCliente 
 check todoCarroEstaNaLocadora
+
+/*--------------------------------------------Show----------------------------------------------------------*/
 
 pred show[]{
 }
