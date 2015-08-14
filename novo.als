@@ -12,7 +12,8 @@ one sig Locadora {
 	clientes: Cliente -> Time,
 	clientesVip: Cliente -> Time,
  	carrosDisponiveis: Carro -> Time,
-	carrosAlugados: Carro -> Time
+	carrosAlugados: Carro -> Time,
+	carrosDesejados: Carro ->Time
 }
 
 sig Cliente {
@@ -30,7 +31,9 @@ sig CarroNac extends Carro {}
 /*--------------------------------------------Fatos------------------------------------------------------------*/
 
 fact Locadora{
-	#Cliente > 2
+	#Cliente = 5
+	#Carro = 7
+	#Locadora = 1
 	all c: Carro, cli: Cliente, t: Time |  !((c in cli.alugadosNac.t) and (c in Locadora.carrosDisponiveis.t)) -- Carro nacional não pode estar alugado e disponível ao mesmo tempo.
 	all c: Carro, cli: Cliente, t: Time |  !((c in cli.alugadosImp.t) and (c in Locadora.carrosDisponiveis.t)) -- Carro importado não pode estar alugado e disponível ao mesmo tempo.
 	all c: Carro, t: Time | some cli: Cliente | c in Locadora.carrosAlugados.t <=> (c in cli.alugadosNac.t or c in cli.alugadosImp.t) -- Carro nacional está como alugado na locadora se, e somente se, ele estiver na lista de alugados nacionais ou importados de um cliente.
@@ -44,6 +47,9 @@ fact Carros{
 	all car:Carro, t:Time | car in todosOsCarros[t]
 	all cli:Cliente,car:Carro, t:Time | car in (cli.desejados).t => car in carrosAlug[t]
 	all cli:Cliente,car:Carro,t:Time | car in (cli.desejados).t => car !in (cli.alugadosNac).t
+	all t:Time | carroEhDesejadoPorUmUnicoCliente[t]
+	all  loc: Locadora, t: Time |no (loc.carrosDisponiveis).t & (loc.carrosDesejados).t --Carros desejados nao podem ser disponiveis	
+    all c: Carro, t: Time | c in (Locadora.carrosDesejados).t <=> one cli : Cliente | c in (cli.desejados).t and  cli in (Locadora.clientes).t
 }
 
 fact  Clientes {
@@ -56,6 +62,7 @@ fact  Clientes {
 	all t: Time | carroImpEhAlugadoAUmUnicoCliente[t] -- Carro importado só pode ser alugado à um único cliente.
 	all t:Time, cli:Cliente, loc:Locadora | cli !in clientesLocadora[loc,t] => #cli.alugadosNac.t = 0 -- Cliente que não está cadastrado não pode ter carros nacionais.
 	all t:Time, cli:Cliente, loc:Locadora | cli !in clientesLocadora[loc,t] => #cli.alugadosImp.t = 0  -- Cliente que não está cadastrado não pode ter carros importados.
+	all t:Time, cli:Cliente, loc:Locadora | cli !in clientesLocadora[loc,t] => #cli.desejados.t = 0  -- Cliente que não está cadastrado não pode ter carros desejados.
 	all c: Cliente, t: Time | #(c.alugadosNac).t >= 2 => c in (Locadora.clientesVip).(t.next) -- Cliente que tem mais de 2 carros nacionais alugados é vip.
 }
 
@@ -85,6 +92,7 @@ fun todosOsCarros[t:Time]: set Carro{
 /*--------------------------------------------Predicados-------------------------------------------------------*/
 
 pred init[t: Time] { --Inicializador
+	no (Locadora.carrosDesejados).t
 	no (Locadora.clientesVip).t -- Não possui clientes Vips no início
 	no carrosAlug[t] 	-- No tempo inicial a locadora não tem nenhum carro alugado
  	no (Cliente.alugadosNac).t 	-- No tempo inicial nenhum cliente tem carro alugado
@@ -127,11 +135,17 @@ pred carroAlugado[car:Carro, cli:Cliente, loc: Locadora, t:Time]{ -- Se carro es
 pred carrosDeClientesNaoMudam[c:Cliente,t,t': Time]{ -- Carros de cliente passado como parâmetro não mudam.
 	c.alugadosNac.t = c.alugadosNac.t' and
 	c.alugadosImp.t = c.alugadosImp.t'
+	c.desejados.t = c.desejados.t'
 }
 
 pred locadoraNaoMuda[l:Locadora,cli:Cliente,t,t':Time]{ -- Locadora passada como parâmetro não muda.
 	l.clientes.t = l.clientes.t' - cli
 	l.clientesVip.t = l.clientesVip.t'
+}
+
+pred carroEhDesejadoPorUmUnicoCliente[t: Time] { -- Carro só pode ser desejado por um único cliente.
+	all car:Carro,cli:Cliente | (car in cli.desejados.t)=> 
+	(all cli2:Cliente-cli| car !in cli2.desejados.t)
 }
 
 
@@ -140,8 +154,8 @@ pred locadoraNaoMuda[l:Locadora,cli:Cliente,t,t':Time]{ -- Locadora passada como
 fact traces {
 	init [first]	
  	all pre: Time-last | let pos = pre.next |
-	one cli: Cliente, loc: Locadora | some car: CarroNac, carImp: CarroImp | all cli2: Cliente | clientePermanece[cli2, pre, pos] 
-	and (cadastrarCliente[cli, loc, pre, pos] or alugarCarroNac[cli, car, loc, pre, pos] or alugarCarroImp[cli, carImp, loc, pre, pos])
+	one cli: Cliente, loc: Locadora | some car: CarroNac, carImp: CarroImp | all cli2: Cliente | clientePermanece[cli2, pre, pos]-- and alugaReservado[loc,car,pre,pos]
+	and (cadastrarCliente[cli, loc, pre, pos] or alugarCarroNac[cli, car, loc, pre, pos] or alugarCarroImp[cli, carImp, loc, pre, pos] or reservarCarro[loc,cli,car, pre,pos])
 }
 
 /*--------------------------------------------Operações--------------------------------------------------------*/
@@ -182,31 +196,20 @@ pred alugarCarroImp[cli: Cliente, car: CarroImp, l: Locadora, t, t': Time] {
 	all cli2: Cliente - cli | carrosDeClientesNaoMudam[cli2, t, t']
 }
 
-pred reservarCarro[cli:Cliente,car:Carro, t,t':Time]{
-	cli in (Locadora.clientes).t and car !in cli.(alugadosNac).t and car in (Locadora.carrosAlugados).t =>
+pred reservarCarro[loc: Locadora , cli:Cliente,car:Carro, t,t':Time]{
+	(cli in (loc.clientes).t and car !in cli.(alugadosNac).t and car !in cli.(alugadosImp).t and car in (loc.carrosAlugados).t and car !in (loc.carrosDesejados).t )=>
+	(loc.carrosDesejados).t' = (loc.carrosDesejados).t + car
 	cli.desejados.t' = cli.desejados.t + car
+	all cli2: Cliente - cli | carrosDeClientesNaoMudam[cli2, t, t']
 }
 
-/*
--- OPERAÇÃO DEVOLVER CARRO IMPORTADO
-pred devolverCarroAtrasado[cli:Cliente, l:Locadora, t,t': Time]{
-	one car:Carro | car in (cli.alugadosNac).t =>
-	(cli.alugadosNac.t' = cli.alugadosNac.t - car and
-	l.carrosDisponiveis.t' = l.carrosDisponiveis.t +car and
-	l.carrosAlugados.t' = ((l.carrosAlugados).t - car) and
-	l.clientesVip.t' = l.clientesVip.t - cli and
-	l.clientesSujos.t' = l.clientesSujos.t + cli)
+pred alugaReservado[loc: Locadora , car:CarroNac, t,t':Time]{
+	some cli:Cliente | car in (loc.carrosDesejados).t and car in (cli.desejados).t and car in (loc.carrosDisponiveis).(t.next) =>
+	((loc.carrosDesejados).t' = (loc.carrosDesejados).t - car and
+	cli.desejados.t' = cli.desejados.t - car and
+	alugarCarroNac[cli,car,loc,t,t'] and
+	all cli2: Cliente - cli | carrosDeClientesNaoMudam[cli2, t, t'])
 }
-
-pred desejarAnimal[an: Animal, cli: Cliente, ab: Abrigo, t, t' : Time] { -- O cliente deseja um animal
-	(#(desejosDoCliente.t).an < 1 and animalNaoEstaEmNenhumAbrigo[an, t] and animalNaoEstaComNenhumCliente[an,t] ) => 	--Se não tiver desejado por ninguém ainda e não estiver em nenhum abrigo...
-		(ab.animaisDesejados.t' = ab.animaisDesejados.t + an and 	--...Então adicione a lista de desejos do abrigo,
-		cli.desejosDoCliente.t' = cli.desejosDoCliente.t + an) --Adiciona animais nos desejos do cliente
-
-	-- Caso contrário...
-	not(#(desejosDoCliente.t).an < 1 and animalNaoEstaEmNenhumAbrigo[an, t]  and animalNaoEstaComNenhumCliente[an,t]) =>
-		(ab.animaisDesejados.t' = ab.animaisDesejados.t and 	-- A lista de desejos do abrigo não muda
-		cli.desejosDoCliente.t' = cli.desejosDoCliente.t)
 
 /*--------------------------------------------Asserts----------------------------------------------------------*/
 
@@ -235,6 +238,8 @@ check todoClienteTemUmTelefone
 check todoClienteTemUmNome 
 check todoCarroEhAlugadoApenasAUmCliente 
 check todoCarroEstaNaLocadora
+
+/*--------------------------------------------Show---------------------------------------------------------*/
 
 pred show[]{
 }
